@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Structural Hash Ledger</title>
+    <style>
+        :root { --primary: #1e293b; --accent: #10b981; --border: #e2e8f0; }
+        body { font-family: 'Segoe UI', sans-serif; background: #f8fafc; margin: 0; padding: 20px; color: #334155; }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .card { background: white; border: 1px solid var(--border); border-radius: 8px; padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+        h2 { font-size: 1.1rem; margin-top: 0; border-bottom: 1px solid var(--border); padding-bottom: 10px; display: flex; justify-content: space-between; }
+        
+        .process-log { background: #0f172a; color: #34d399; padding: 15px; border-radius: 6px; font-family: 'Courier New', monospace; font-size: 0.85rem; height: 180px; overflow-y: auto; margin-bottom: 20px; }
+        
+        table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+        th { text-align: left; background: #f1f5f9; padding: 10px; border-bottom: 2px solid var(--border); }
+        td { padding: 10px; border-bottom: 1px solid var(--border); }
+        
+        .hash-cell { font-family: monospace; color: #6366f1; background: #eef2ff; padding: 2px 4px; border-radius: 4px; }
+        .btn { background: var(--accent); color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; font-weight: bold; }
+        .tag { font-size: 0.7rem; padding: 2px 6px; border-radius: 10px; background: #f1f5f9; border: 1px solid #cbd5e1; }
+    </style>
+</head>
+<body>
+
+    <div style="margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center;">
+        <h1>Audit Persistence Engine</h1>
+        <button class="btn">▶ Run New Hash Process</button>
+    </div>
+
+    <div class="grid">
+        <div class="card">
+            <h2>Process Execution Log <span class="tag">Live</span></h2>
+            <div class="process-log">
+                [14:20:01] Initializing Sample (Size: 10% of 50,000)...<br>
+                [14:20:03] Extracting JSONPaths from 5,000 records...<br>
+                [14:20:05] Generating SHA-256 for 142 unique paths...<br>
+                [14:20:06] Comparing current batch (B-99) with previous (B-98)...<br>
+                [14:20:07] SUCCESS: 128 hashes persisted to [Audit_Structural_Manifest].<br>
+                [14:20:07] Notification: Structural drift detected in 'UPDATE' actions.
+            </div>
+            
+            <h3>Sampling Strategy</h3>
+            <div style="display: flex; gap: 10px;">
+                <div style="flex:1; border: 1px solid var(--border); padding: 10px; border-radius: 4px;">
+                    <small>Type</small><br><strong>Random %</strong>
+                </div>
+                <div style="flex:1; border: 1px solid var(--border); padding: 10px; border-radius: 4px;">
+                    <small>Window</small><br><strong>48 Hours</strong>
+                </div>
+                <div style="flex:1; border: 1px solid var(--border); padding: 10px; border-radius: 4px;">
+                    <small>Records</small><br><strong>5,000</strong>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>Persisted Hash Table <span class="tag">DB: Audit_Structural_Manifest</span></h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Batch</th>
+                        <th>Path</th>
+                        <th>Stored Hash</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>B-99</td>
+                        <td>$.meta.v2.id</td>
+                        <td><span class="hash-cell">4a1b...</span></td>
+                        <td>ADD</td>
+                    </tr>
+                    <tr>
+                        <td>B-99</td>
+                        <td>$.payload.auth</td>
+                        <td><span class="hash-cell">99f2...</span></td>
+                        <td>UPDATE</td>
+                    </tr>
+                    <tr>
+                        <td>B-98</td>
+                        <td>$.meta.v1.id</td>
+                        <td><span class="hash-cell">11c2...</span></td>
+                        <td>ADD</td>
+                    </tr>
+                    <tr>
+                        <td>B-98</td>
+                        <td>$.payload.auth</td>
+                        <td><span class="hash-cell">99f2...</span></td>
+                        <td>UPDATE</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="card" style="margin-top: 20px; border-left: 5px solid #f59e0b;">
+        <h2>Identified Structural Differences (Current vs Previous Batch)</h2>
+        <table style="background: #fffbeb;">
+            <thead>
+                <tr>
+                    <th>Path Descriptor</th>
+                    <th>Previous Hash (B-98)</th>
+                    <th>Current Hash (B-99)</th>
+                    <th>Drift Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>$.meta.v1.id</td>
+                    <td><span class="hash-cell">11c2...</span></td>
+                    <td style="color: #ef4444;">-- DELETED --</td>
+                    <td><strong>Removed</strong></td>
+                </tr>
+                <tr>
+                    <td>$.meta.v2.id</td>
+                    <td>-- NEW --</td>
+                    <td><span class="hash-cell">4a1b...</span></td>
+                    <td style="color: #10b981;"><strong>Added</strong></td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+</body>
+</html>
