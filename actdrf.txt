@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Audit Sentinel v2.0</title>
+    <style>
+        :root { --primary: #2563eb; --bg: #f8fafc; --border: #e2e8f0; }
+        body { font-family: sans-serif; background: var(--bg); color: #334155; margin: 20px; }
+        
+        /* Tabs Logic */
+        .tabs { display: flex; gap: 5px; margin-bottom: -1px; }
+        .tab { padding: 12px 24px; background: #e2e8f0; border: 1px solid var(--border); border-radius: 8px 8px 0 0; cursor: pointer; font-weight: 600; }
+        .tab.active { background: white; border-bottom: 2px solid white; color: var(--primary); }
+        
+        .content-box { background: white; border: 1px solid var(--border); border-radius: 0 8px 8px 8px; padding: 25px; min-height: 400px; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1); }
+        
+        /* Controls */
+        .config-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 30px; background: #f1f5f9; padding: 15px; border-radius: 8px; }
+        .pane-split { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 0.9rem; }
+        th { text-align: left; padding: 12px; border-bottom: 2px solid var(--border); color: #64748b; }
+        td { padding: 12px; border-bottom: 1px solid var(--border); }
+        
+        .badge { padding: 4px 8px; border-radius: 4px; font-size: 0.7rem; font-weight: bold; }
+        .add { background: #dcfce7; color: #166534; }
+        .upd { background: #dbeafe; color: #1e40af; }
+        .hash { font-family: monospace; color: #6366f1; }
+    </style>
+</head>
+<body>
+
+    <div class="tabs">
+        <div class="tab">1. Sample Configuration</div>
+        <div class="tab active">2. Path Explorer</div>
+        <div class="tab">3. Drift Analysis</div>
+        <div class="tab">4. Publish & Ledger</div>
+    </div>
+
+    <div class="content-box">
+        <div class="config-row">
+            <div>
+                <label><strong>Sampling Window</strong></label><br>
+                <input type="text" value="Last 48 Hours" disabled>
+            </div>
+            <div>
+                <label><strong>Sample Size</strong></label><br>
+                <select>
+                    <option>10% of Total</option>
+                    <option selected>Fixed: 500 Records</option>
+                </select>
+            </div>
+            <div>
+                <label><strong>Action Type</strong></label><br>
+                <select><option>ADD & UPDATE</option></select>
+            </div>
+            <div style="display: flex; align-items: flex-end;">
+                <button style="background: var(--primary); color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; width: 100%;">Run Sampling Process</button>
+            </div>
+        </div>
+
+        <div class="pane-split">
+            <div>
+                <h3>Structural Path List</h3>
+                <table>
+                    <thead>
+                        <tr><th>Action</th><th>Detected Path (JSON/XPath)</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td><span class="badge add">ADD</span></td><td>/header/auth/v2/token</td></tr>
+                        <tr><td><span class="badge upd">UPD</span></td><td>/body/items/price_id</td></tr>
+                        <tr><td><span class="badge upd">UPD</span></td><td>/body/customer/loyalty_num</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div>
+                <h3>Generated Hashes (Persisted)</h3>
+                <table>
+                    <thead>
+                        <tr><th>Unique Path Hash (SHA-256)</th><th>Frequency</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td class="hash">8f32a771b9...</td><td>100%</td></tr>
+                        <tr><td class="hash">c4ca4238a0...</td><td>98.4%</td></tr>
+                        <tr><td class="hash">110e8232d3...</td><td>15.0%</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+</body>
+</html>
