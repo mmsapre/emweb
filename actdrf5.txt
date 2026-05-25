@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Structural Audit - Ingestion to CMF Sync</title>
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { background-color: #0b0f1a; color: #cbd5e1; font-family: 'Inter', sans-serif; overflow: hidden; }
+        .glass-panel { background: rgba(30, 41, 59, 0.4); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.05); }
+        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
+        .tab-active { color: #3b82f6; border-bottom: 2px solid #3b82f6; }
+        .pulse-ring { animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: .5; } }
+        select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2364748b'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 0.75rem center; background-size: 1rem; }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        function App() {
+            const [domain, setDomain] = useState('Payments');
+            const [ingestionTable, setIngestionTable] = useState('');
+            const [cmfTable, setCmfTable] = useState('');
+            const [activeTab, setActiveTab] = useState('sampling');
+            const [isSyncing, setIsSyncing] = useState(false);
+            const [showResults, setShowResults] = useState(false);
+
+            const inventory = {
+                'Payments': {
+                    ingestions: ['raw_iso_pain_001', 'raw_swift_mt103', 'raw_ach_nacha'],
+                    cmfs: ['cmf_payment_v3', 'cmf_disbursement_global']
+                },
+                'Trading': {
+                    ingestions: ['fix_execution_report', 'raw_nasdaq_itch'],
+                    cmfs: ['cmf_order_lifecycle', 'cmf_trade_capture']
+                }
+            };
+
+            // Set defaults when domain changes
+            useEffect(() => {
+                setIngestionTable(inventory[domain].ingestions[0]);
+                setCmfTable(inventory[domain].cmfs[0]);
+                setShowResults(false);
+            }, [domain]);
+
+            const triggerSync = () => {
+                setIsSyncing(true);
+                setTimeout(() => {
+                    setIsSyncing(false);
+                    setShowResults(true);
+                    setActiveTab('drift-report');
+                }, 1200);
+            };
+
+            return (
+                <div className="flex h-screen w-full bg-[#0b0f1a] text-slate-300">
+                    {/* SIDEBAR */}
+                    <div className="w-20 bg-[#0f172a] border-r border-slate-800 flex flex-col items-center py-8 space-y-10">
+                        <div className="w-10 h-10 bg-gradient-to-tr from-blue-600 to-indigo-500 rounded-xl flex items-center justify-center font-black text-white shadow-lg shadow-blue-900/40">SD</div>
+                        <div className="flex flex-col space-y-6 text-slate-500">
+                            <div className="cursor-pointer hover:text-blue-400 transition-colors">📂</div>
+                            <div className="cursor-pointer text-blue-500">📡</div>
+                            <div className="cursor-pointer hover:text-blue-400 transition-colors">🛠️</div>
+                        </div>
+                    </div>
+
+                    {/* MAIN CONTENT */}
+                    <div className="flex-1 flex flex-col overflow-hidden">
+                        <header className="h-16 border-b border-slate-800 bg-[#0f172a]/50 flex items-center justify-between px-8">
+                            <div className="flex items-center space-x-4">
+                                <h1 className="text-sm font-bold tracking-[0.3em] text-white uppercase">Structural Audit Console</h1>
+                                <span className="px-2 py-1 bg-blue-500/10 border border-blue-500/20 rounded text-[9px] text-blue-400 font-mono">DRF-v2.0.6-MASTER</span>
+                            </div>
+                            <div className="flex items-center space-x-3">
+                                <span className="text-[10px] font-mono text-slate-500">System Time: 2026-05-25</span>
+                                <div className="h-8 w-8 rounded-lg bg-slate-800 border border-slate-700 flex items-center justify-center text-xs text-blue-400">⌘</div>
+                            </div>
+                        </header>
+
+                        <div className="flex-1 p-8 grid grid-cols-12 gap-8 overflow-hidden bg-gradient-to-b from-[#0b0f1a] to-[#0f172a]">
+                            
+                            {/* CONFIGURATION PANE */}
+                            <section className="col-span-4 flex flex-col space-y-6 h-full overflow-y-auto custom-scrollbar">
+                                <div className="glass-panel rounded-3xl p-6 space-y-6 border border-white/5 shadow-2xl">
+                                    <div className="flex items-center space-x-2 pb-4 border-b border-slate-800">
+                                        <div className="h-2 w-2 rounded-full bg-blue-500 shadow-[0_0_8px_#3b82f6]"></div>
+                                        <h2 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Process Selector</h2>
+                                    </div>
+
+                                    {/* Domain Selection */}
+                                    <div className="space-y-4">
+                                        <div className="group">
+                                            <label className="text-[10px] text-slate-500 font-bold uppercase mb-2 block group-focus-within:text-blue-400 transition-colors">Domain Workspace</label>
+                                            <select 
+                                                value={domain} 
+                                                onChange={(e) => setDomain(e.target.value)}
+                                                className="w-full bg-slate-900/80 border border-slate-700 p-3 rounded-xl text-xs outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all cursor-pointer"
+                                            >
+                                                {Object.keys(inventory).map(d => <option key={d} value={d}>{d}</option>)}
+                                            </select>
+                                        </div>
+
+                                        {/* Ingestion Selection */}
+                                        <div className="p-4 rounded-2xl bg-emerald-500/5 border border-emerald-500/10">
+                                            <label className="text-[9px] text-emerald-500 font-bold uppercase mb-2 block italic tracking-wider">Source: Ingestion Layer</label>
+                                            <select 
+                                                value={ingestionTable}
+                                                onChange={(e) => setIngestionTable(e.target.value)}
+                                                className="w-full bg-[#0b0f1a] border border-slate-800 p-2.5 rounded-lg text-[11px] font-mono outline-none focus:border-emerald-500 transition-all"
+                                            >
+                                                {inventory[domain].ingestions.map(t => <option key={t} value={t}>{t}</option>)}
+                                            </select>
+                                        </div>
+
+                                        {/* CMF Selection */}
+                                        <div className="p-4 rounded-2xl bg-blue-500/5 border border-blue-500/10">
+                                            <label className="text-[9px] text-blue-500 font-bold uppercase mb-2 block italic tracking-wider">Target: CMF Layer</label>
+                                            <select 
+                                                value={cmfTable}
+                                                onChange={(e) => setCmfTable(e.target.value)}
+                                                className="w-full bg-[#0b0f1a] border border-slate-800 p-2.5 rounded-lg text-[11px] font-mono outline-none focus:border-blue-500 transition-all"
+                                            >
+                                                {inventory[domain].cmfs.map(t => <option key={t} value={t}>{t}</option>)}
+                                            </select>
+                                        </div>
+                                    </div>
+
+                                    {/* Run Button */}
+                                    <button 
+                                        onClick={triggerSync}
+                                        disabled={isSyncing}
+                                        className={`w-full py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all shadow-xl active:scale-95 ${isSyncing ? 'bg-slate-700 text-slate-500' : 'bg-blue-600 hover:bg-blue-500 text-white shadow-blue-600/20'}`}
+                                    >
+                                        {isSyncing ? 'Syncing Structures...' : 'Execute Path Sync'}
+                                    </button>
+                                </div>
+                                
+                                <div className="p-4 rounded-2xl bg-slate-900/40 border border-slate-800 space-y-2">
+                                    <h4 className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Metadata Hash Strategy</h4>
+                                    <p className="text-[10px] text-slate-400 font-mono">Algorithm: SHA-256 (Canonical Path Flattening)</p>
+                                    <p className="text-[10px] text-slate-400 font-mono">Context: {domain} Schema Drift</p>
+                                </div>
+                            </section>
+
+                            {/* OUTPUT/RESULTS PANE */}
+                            <section className="col-span-8 glass-panel rounded-3xl flex flex-col overflow-hidden shadow-2xl relative">
+                                <div className="bg-[#0f172a]/80 p-6 border-b border-slate-800 flex justify-between items-end">
+                                    <div className="flex space-x-10 text-[10px] font-bold uppercase tracking-widest">
+                                        <button 
+                                            onClick={() => setActiveTab('sampling')}
+                                            className={`pb-2 transition-all duration-300 ${activeTab === 'sampling' ? 'tab-active scale-105' : 'text-slate-500 hover:text-slate-300'}`}
+                                        >
+                                            Sampling Monitor
+                                        </button>
+                                        <button 
+                                            onClick={() => setActiveTab('drift-report')}
+                                            className={`pb-2 transition-all duration-300 ${activeTab === 'drift-report' ? 'tab-active scale-105' : 'text-slate-500 hover:text-slate-300'}`}
+                                        >
+                                            Drift & Differences
+                                        </button>
+                                    </div>
+                                    {showResults && activeTab === 'drift-report' && (
+                                        <button className="px-5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-[10px] font-bold shadow-lg shadow-emerald-900/40 transition active:scale-95">
+                                            PUBLISH TO DRF
+                                        </button>
+                                    )}
+                                </div>
+
+                                <div className="flex-1 p-8 overflow-y-auto custom-scrollbar">
+                                    {!showResults && !isSyncing && (
+                                        <div className="h-full flex flex-col items-center justify-center text-slate-600 space-y-4">
+                                            <div className="text-4xl">📡</div>
+                                            <p className="text-xs uppercase tracking-widest font-bold">Select entities and execute sync to view results</p>
+                                        </div>
+                                    )}
+
+                                    {isSyncing && (
+                                        <div className="h-full flex flex-col items-center justify-center space-y-6">
+                                            <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                                            <div className="text-[10px] font-mono text-blue-400 pulse-ring">HASHING: {ingestionTable} ➔ {cmfTable}</div>
+                                        </div>
+                                    )}
+
+                                    {showResults && activeTab === 'sampling' && (
+                                        <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-500">
+                                            <div className="grid grid-cols-2 gap-6">
+                                                <div className="bg-[#0b0f1a] p-6 rounded-3xl border border-slate-800/50 shadow-inner">
+                                                    <p className="text-[9px] text-slate-500 font-bold uppercase mb-4 tracking-wider text-center">Ingestion Profile: {ingestionTable}</p>
+                                                    <div className="space-y-3 font-mono text-[10px]">
+                                                        <div className="flex justify-between"><span>Unique JSONPaths:</span><span className="text-emerald-400">142</span></div>
+                                                        <div className="flex justify-between"><span>Sample Size:</span><span className="text-white">5,000 rec</span></div>
+                                                        <div className="flex justify-between"><span>Sampling Time:</span><span className="text-slate-400">42ms</span></div>
+                                                    </div>
+                                                </div>
+                                                <div className="bg-[#0b0f1a] p-6 rounded-3xl border border-slate-800/50 shadow-inner">
+                                                    <p className="text-[9px] text-slate-500 font-bold uppercase mb-4 tracking-wider text-center">Target CMF: {cmfTable}</p>
+                                                    <div className="space-y-3 font-mono text-[10px]">
+                                                        <div className="flex justify-between"><span>Expected Paths:</span><span className="text-blue-400">88</span></div>
+                                                        <div className="flex justify-between"><span>Hash Consistency:</span><span className="text-white">99.8%</span></div>
+                                                        <div className="flex justify-between"><span>Mapping Coverage:</span><span className="text-slate-400">100%</span></div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {showResults && activeTab === 'drift-report' && (
+                                        <div className="space-y-6 animate-in slide-in-from-bottom-4 duration-500">
+                                            <div className="bg-amber-500/5 border border-amber-500/20 p-4 rounded-2xl flex items-center justify-between">
+                                                <div className="flex items-center space-x-3">
+                                                    <span className="text-xl">⚠️</span>
+                                                    <span className="text-xs text-amber-500/80 font-bold tracking-wide">3 Unmapped Ingestion Paths Detected</span>
+                                                </div>
+                                            </div>
+
+                                            <div className="rounded-2xl border border-slate-800 overflow-hidden text-[10px] font-mono shadow-2xl">
+                                                <table className="w-full text-left bg-slate-900/20">
+                                                    <thead className="bg-[#111827] text-slate-500 uppercase tracking-tighter">
+                                                        <tr>
+                                                            <th className="p-4 border-b border-slate-800">Source Path (Ingestion)</th>
+                                                            <th className="p-4 border-b border-slate-800">Drift Status</th>
+                                                            <th className="p-4 border-b border-slate-800">Path Hash (SHA-256)</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody className="divide-y divide-slate-800/50 text-slate-400">
+                                                        <tr className="hover:bg-blue-600/5 transition-all">
+                                                            <td className="p-4 truncate max-w-[200px]">$.payload.v3.priority_metadata</td>
+                                                            <td className="p-4"><span className="px-2 py-0.5 bg-emerald-500/10 text-emerald-500 rounded border border-emerald-500/20 text-[9px]">NEW PATH</span></td>
+                                                            <td className="p-4 text-blue-400/70 italic">7a12b...f99</td>
+                                                        </tr>
+                                                        <tr className="hover:bg-blue-600/5 transition-all">
+                                                            <td className="p-4 truncate max-w-[200px]">$.header.auth_signature</td>
+                                                            <td className="p-4"><span className="px-2 py-0.5 bg-amber-500/10 text-amber-500 rounded border border-amber-500/20 text-[9px]">SHIFT DETECTED</span></td>
+                                                            <td className="p-4 text-blue-400/70 italic">bb22c...31d</td>
+                                                        </tr>
+                                                        <tr className="hover:bg-blue-600/5 transition-all opacity-60">
+                                                            <td className="p-4 truncate max-w-[200px]">$.legacy.timestamp_v1</td>
+                                                            <td className="p-4"><span className="px-2 py-0.5 bg-red-500/10 text-red-500 rounded border border-red-500/20 text-[9px]">DEPRECATED</span></td>
+                                                            <td className="p-4 text-slate-600 italic">44ee0...a11</td>
+                                                        </tr>
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            </section>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
