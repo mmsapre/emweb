@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Structural Audit Sentinel - Space Sync</title>
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { background-color: #0b0f1a; color: #cbd5e1; font-family: 'Inter', sans-serif; }
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
+        .glass-panel { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.1); }
+        .tab-active { color: #3b82f6; border-bottom: 2px solid #3b82f6; }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState } = React;
+
+        function App() {
+            const [activeTab, setActiveTab] = useState('sampling');
+            const [sampleMode, setSampleMode] = useState('count');
+            const [sampleValue, setSampleValue] = useState(500);
+
+            // Mock Data for the Hashing Ledger
+            const hashLedger = [
+                { id: 1, action: 'ADD', path: '$.order.v2.metadata.origin', hash: '8f32a...e12', frequency: '100%', status: 'New' },
+                { id: 2, action: 'UPDATE', path: '$.customer.profile.loyalty_id', hash: 'c4ca4...238', frequency: '94.2%', status: 'Stable' },
+                { id: 3, action: 'UPDATE', path: '$.payload.auth_v3.token_secret', hash: '110e8...d32', frequency: '12.5%', status: 'Drift' },
+            ];
+
+            return (
+                <div className="flex h-screen overflow-hidden">
+                    {/* SIDEBAR */}
+                    <div className="w-16 bg-[#111827] border-r border-slate-800 flex flex-col items-center py-4 space-y-6">
+                        <div className="text-blue-500 font-bold text-xl">{"{H}"}</div>
+                        <div className="p-2 bg-slate-800 rounded-lg cursor-pointer shadow-lg shadow-blue-500/20">🔍</div>
+                        <div className="p-2 text-slate-500 cursor-pointer hover:text-white transition">📊</div>
+                        <div className="p-2 text-slate-500 cursor-pointer hover:text-white transition">⚙️</div>
+                    </div>
+
+                    <div className="flex-1 flex flex-col">
+                        {/* HEADER */}
+                        <header className="h-14 border-b border-slate-800 bg-[#111827] flex items-center justify-between px-6">
+                            <div className="flex items-center space-x-4">
+                                <h1 className="text-lg font-bold text-white uppercase tracking-tight">Structural Sentinel</h1>
+                                <span className="bg-emerald-500/10 text-emerald-500 text-[10px] px-2 py-0.5 rounded border border-emerald-500/20 font-mono">Live Batch: B-2026-99</span>
+                            </div>
+                            <div className="flex items-center space-x-3 text-[10px] font-mono text-slate-500">
+                                <span>Window: 2D Rolling</span>
+                                <div className="h-8 w-8 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center font-bold text-blue-400">AI</div>
+                            </div>
+                        </header>
+
+                        <main className="flex-1 p-6 grid grid-cols-12 gap-6 overflow-hidden">
+                            
+                            {/* LEFT PANEL: CONFIGURATION */}
+                            <section className="col-span-4 glass-panel rounded-xl flex flex-col overflow-hidden animate-in fade-in slide-in-from-left-4 duration-500">
+                                <div className="p-4 border-b border-slate-800 bg-slate-900/50">
+                                    <h2 className="text-xs font-bold text-slate-400 uppercase tracking-widest">Process Configuration</h2>
+                                </div>
+
+                                <div className="p-6 space-y-8 flex-1">
+                                    {/* Sampling Control */}
+                                    <div>
+                                        <p className="text-[10px] font-bold text-blue-500 uppercase mb-4 tracking-wider">1. Sampling Strategy</p>
+                                        <div className="space-y-4">
+                                            <div className="flex space-x-2">
+                                                <button onClick={() => setSampleMode('count')} className={`flex-1 py-2 text-[10px] rounded border transition ${sampleMode === 'count' ? 'bg-blue-600 border-blue-500 text-white' : 'border-slate-700 text-slate-500'}`}>FIXED COUNT</button>
+                                                <button onClick={() => setSampleMode('percent')} className={`flex-1 py-2 text-[10px] rounded border transition ${sampleMode === 'percent' ? 'bg-blue-600 border-blue-500 text-white' : 'border-slate-700 text-slate-500'}`}>PERCENTAGE %</button>
+                                            </div>
+                                            <input 
+                                                type="number" 
+                                                value={sampleValue}
+                                                onChange={(e) => setSampleValue(e.target.value)}
+                                                className="w-full bg-[#0b0f1a] border border-slate-800 p-3 rounded-lg text-sm font-mono focus:border-blue-500 outline-none transition"
+                                            />
+                                        </div>
+                                    </div>
+
+                                    {/* Action Filter */}
+                                    <div>
+                                        <p className="text-[10px] font-bold text-blue-500 uppercase mb-4 tracking-wider">2. Action Filter</p>
+                                        <div className="grid grid-cols-2 gap-2">
+                                            <label className="flex items-center space-x-3 bg-slate-900/50 p-3 rounded-lg border border-slate-800 cursor-pointer">
+                                                <input type="checkbox" checked className="accent-blue-500"/>
+                                                <span className="text-xs font-mono">ADD</span>
+                                            </label>
+                                            <label className="flex items-center space-x-3 bg-slate-900/50 p-3 rounded-lg border border-slate-800 cursor-pointer">
+                                                <input type="checkbox" checked className="accent-blue-500"/>
+                                                <span className="text-xs font-mono">UPDATE</span>
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="p-4 border-t border-slate-800 bg-slate-900/50">
+                                    <button className="w-full bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold py-4 rounded-xl transition shadow-lg shadow-blue-900/20 active:scale-95">
+                                        GENERATE STRUCTURAL HASHES
+                                    </button>
+                                </div>
+                            </section>
+
+                            {/* RIGHT PANEL: TABS & RESULTS */}
+                            <section className="col-span-8 glass-panel rounded-xl flex flex-col overflow-hidden animate-in fade-in slide-in-from-right-4 duration-500">
+                                <div className="bg-slate-900/50 border-b border-slate-800">
+                                    <div className="flex space-x-8 px-6 pt-4 text-[10px] font-bold uppercase tracking-widest">
+                                        {['sampling', 'hash-ledger', 'drift-report'].map(tab => (
+                                            <button 
+                                                key={tab} 
+                                                onClick={() => setActiveTab(tab)}
+                                                className={`pb-3 transition-all ${activeTab === tab ? 'tab-active scale-105' : 'text-slate-500 hover:text-slate-300'}`}
+                                            >
+                                                {tab.replace('-', ' ')}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                <div className="flex-1 overflow-y-auto p-6 custom-scrollbar bg-[#0b0f1a]/20">
+                                    {activeTab === 'sampling' && (
+                                        <div className="space-y-4 animate-in zoom-in-95 duration-300">
+                                            <div className="flex justify-between items-center bg-slate-900 p-4 rounded-xl border border-slate-800">
+                                                <span className="text-xs font-mono text-slate-400">Total Population (2D Window):</span>
+                                                <span className="text-blue-400 font-bold font-mono">1,240,502 Records</span>
+                                            </div>
+                                            <div className="grid grid-cols-3 gap-4 text-center">
+                                                <div className="bg-[#0f172a] p-4 rounded-xl border border-slate-800">
+                                                    <p className="text-[9px] text-slate-500 uppercase">Sample Count</p>
+                                                    <p className="text-xl font-bold text-white">{sampleValue}</p>
+                                                </div>
+                                                <div className="bg-[#0f172a] p-4 rounded-xl border border-slate-800">
+                                                    <p className="text-[9px] text-slate-500 uppercase">Confidence</p>
+                                                    <p className="text-xl font-bold text-emerald-500">95%</p>
+                                                </div>
+                                                <div className="bg-[#0f172a] p-4 rounded-xl border border-slate-800">
+                                                    <p className="text-[9px] text-slate-500 uppercase">Error Margin</p>
+                                                    <p className="text-xl font-bold text-blue-400">±4.2%</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {activeTab === 'hash-ledger' && (
+                                        <div className="rounded-xl border border-slate-800 overflow-hidden animate-in fade-in duration-500">
+                                            <table className="w-full text-[11px] font-mono">
+                                                <thead className="bg-[#111827] text-slate-500 uppercase border-b border-slate-800">
+                                                    <tr>
+                                                        <th className="p-4">Action</th>
+                                                        <th className="p-4">Path Descriptor</th>
+                                                        <th className="p-4">Stored Hash</th>
+                                                        <th className="p-4">Freq</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody className="divide-y divide-slate-800/50 bg-slate-900/20">
+                                                    {hashLedger.map(item => (
+                                                        <tr key={item.id} className="hover:bg-slate-800/40 transition">
+                                                            <td className="p-4 font-bold text-blue-500">{item.action}</td>
+                                                            <td className="p-4 text-slate-300 truncate max-w-[200px]">{item.path}</td>
+                                                            <td className="p-4 text-emerald-500/80 italic">{item.hash}</td>
+                                                            <td className="p-4 text-slate-500">{item.frequency}</td>
+                                                        </tr>
+                                                    ))}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    )}
+
+                                    {activeTab === 'drift-report' && (
+                                        <div className="space-y-4 animate-in slide-in-from-bottom-2 duration-300">
+                                            <div className="bg-red-500/10 border border-red-500/20 p-4 rounded-xl flex items-center justify-between">
+                                                <span className="text-xs text-red-400">Critical Drift Detected: New path added without baseline authorization.</span>
+                                                <button className="text-[10px] font-bold bg-red-500 text-white px-4 py-2 rounded-lg">PUBLISH TO MASTER</button>
+                                            </div>
+                                            <div className="bg-[#1e293b]/40 rounded-xl p-4 border border-slate-800">
+                                                <p className="text-[9px] text-slate-500 font-bold uppercase mb-2">Previous Hash vs Current</p>
+                                                <div className="flex justify-between items-center font-mono text-[11px]">
+                                                    <span className="text-slate-500">B-2026-98: a771b9...</span>
+                                                    <span className="text-blue-500">➔</span>
+                                                    <span className="text-white">B-2026-99: 8f32a7...</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            </section>
+                        </main>
+                    </div>
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
